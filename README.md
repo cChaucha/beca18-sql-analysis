@@ -69,6 +69,7 @@ df_aptos = pd.DataFrame(Aptos)
 # Asignar encabezados normalizados
 df_aptos.columns = ["N", "MODALIDAD", "DNI", "NOMBRES", "RESULTADO"]
 
+```
 ---
 
 ### 🔹 2. Transformación (Data Cleaning)
