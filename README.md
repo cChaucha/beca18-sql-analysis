@@ -102,7 +102,7 @@ df_preseleccionados["MODALIDAD"] = df_preseleccionados["MODALIDAD"].str.upper().
 df_preseleccionados["NOMBRES"] = df_preseleccionados["NOMBRES"].str.strip()
 df_preseleccionados["REGION"] = df_preseleccionados["REGION"].str.strip()
 
-# 🔥 (OPCIONAL pero recomendado) normalizar CNA
+# 🔥 Normalizar CNA
 df_preseleccionados["MODALIDAD"] = df_preseleccionados["MODALIDAD"].str.replace(
     r"BECA CNA Y POBLACIONES.*AFROPERUANAS",
     "BECA CNA Y PA",
