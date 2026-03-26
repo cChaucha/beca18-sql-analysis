@@ -46,7 +46,7 @@ Se realizaron:
 - Manejo de estructuras variables
 - Corrección de errores de formato (saltos de línea, columnas adicionales)
 - Normalización de texto
-
+![Funnel](images/pdf_fuente.jpeg)
 ---
 
 ### 🔹 2. Transformación (Data Cleaning)
