@@ -46,7 +46,9 @@ Se realizaron:
 - Manejo de estructuras variables
 - Corrección de errores de formato (saltos de línea, columnas adicionales)
 - Normalización de texto
-![Funnel](images/pdf_fuente.jpeg)
+
+![fuente](images/pdf_fuente.jpeg)
+
 ---
 
 ### 🔹 2. Transformación (Data Cleaning)
@@ -58,6 +60,26 @@ Se aplicaron reglas como:
 - Conversión de tipos de datos (strings → numéricos)
 - Eliminación de duplicados
 - Estandarización de DNIs
+
+```python
+----
+with pdfplumber.open(ruta_aptos) as pdf:
+    for i, page in enumerate(tqdm(pdf.pages)):
+        try:
+            table = page.extract_table()
+
+            if table:
+                for row in table[1:]:  # ignoramos encabezados del PDF
+                    Aptos.append(row)
+
+        except Exception as e:
+            print(f"Error en página {i}: {e}")
+
+# Crear DataFrame SIN usar encabezados del PDF
+df_aptos = pd.DataFrame(Aptos)
+
+# Asignar encabezados normalizados
+df_aptos.columns = ["N", "MODALIDAD", "DNI", "NOMBRES", "RESULTADO"]
 
 ---
 
