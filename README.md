@@ -138,7 +138,8 @@ Se aplicaron validaciones de calidad:
 - Integridad entre etapas
 - Consistencia de datos
 
-```python
+```sql
+
 CREATE TABLE aptos (
     N INT,
     MODALIDAD VARCHAR(100),
@@ -175,6 +176,19 @@ Se construyó un modelo relacional basado en el **DNI como clave principal**, pe
 📌 **Objetivo:**  
 Entender la magnitud del proceso y la reducción de postulantes en cada fase.
 
+```sql
+SELECT 'APTOS' AS etapa,  COUNT(*) as Postulantes FROM aptos
+UNION ALL
+SELECT 'PRESELECCIONADOS', COUNT(*) FROM preseleccionados
+UNION ALL
+SELECT 'SELECCIONADOS', COUNT(*) FROM seleccionados_final
+UNION ALL
+SELECT 'BECARIOS', COUNT(*) FROM becarios;
+
+```
+
+![fuente](images/p1.jpeg)
+
 📊 Insight:
 Se evidencia un **fuerte filtro progresivo**, lo cual confirma la alta competitividad del programa.
 
@@ -184,6 +198,32 @@ Se evidencia un **fuerte filtro progresivo**, lo cual confirma la alta competiti
 
 📌 **Objetivo:**  
 Evaluar qué modalidades tienen mayor tasa de éxito.
+
+```sql
+SELECT 
+    a.MODALIDAD,
+    
+    COUNT(DISTINCT a.DNI) AS aptos,
+    COUNT(DISTINCT p.DNI) AS pre,
+    COUNT(DISTINCT s.DNI) AS sel,
+    COUNT(DISTINCT b.DNI) AS becarios,
+
+    CAST(COUNT(DISTINCT p.DNI) * 1.0 / COUNT(DISTINCT a.DNI) AS DECIMAL(5,2)) AS tasa_pre,
+    CAST(COUNT(DISTINCT s.DNI) * 1.0 / COUNT(DISTINCT a.DNI) AS DECIMAL(5,2)) AS tasa_sel,
+    CAST(COUNT(DISTINCT b.DNI) * 1.0 / COUNT(DISTINCT a.DNI) AS DECIMAL(5,2)) AS tasa_becarios
+
+FROM aptos a
+
+LEFT JOIN preseleccionados p ON a.DNI = p.DNI
+LEFT JOIN seleccionados_final s ON a.DNI = s.DNI
+LEFT JOIN becarios b ON a.DNI = b.DNI
+
+GROUP BY a.MODALIDAD
+ORDER BY tasa_becarios DESC;
+
+```
+
+![fuente](images/p2.jpeg)
 
 📊 Insight:
 Existen diferencias claras en tasas de conversión, lo que puede indicar **brechas estructurales o ventajas por modalidad**.
@@ -195,6 +235,31 @@ Existen diferencias claras en tasas de conversión, lo que puede indicar **brech
 📌 **Objetivo:**  
 Identificar desigualdades geográficas en el acceso a la beca.
 
+```sql
+SELECT 
+    p.REGION,
+
+    COUNT(DISTINCT a.DNI) AS aptos,
+    COUNT(DISTINCT p.DNI) AS pre,
+    COUNT(DISTINCT s.DNI) AS sel,
+    COUNT(DISTINCT b.DNI) AS becarios,
+
+    CAST(COUNT(DISTINCT s.DNI) * 1.0 / COUNT(DISTINCT p.DNI) AS DECIMAL(5,2)) AS tasa_sel,
+    CAST(COUNT(DISTINCT b.DNI) * 1.0 / COUNT(DISTINCT p.DNI) AS DECIMAL(5,2)) AS tasa_becarios
+
+FROM preseleccionados p
+
+LEFT JOIN aptos a ON p.DNI = a.DNI
+LEFT JOIN seleccionados_final s ON p.DNI = s.DNI
+LEFT JOIN becarios b ON p.DNI = b.DNI
+
+GROUP BY p.REGION
+ORDER BY tasa_becarios DESC;
+
+```
+
+![fuente](images/p3.jpeg)
+
 📊 Insight:
 Algunas regiones presentan mejor conversión, lo que puede estar relacionado con acceso a preparación o recursos educativos.
 
@@ -204,6 +269,16 @@ Algunas regiones presentan mejor conversión, lo que puede estar relacionado con
 
 📌 **Objetivo:**  
 Detectar instituciones con mayor captación de talento becado.
+
+```sql
+SELECT TOP 10 INSTITUCION, COUNT(*) AS total
+FROM becarios
+GROUP BY INSTITUCION
+ORDER BY total DESC;
+
+```
+
+![fuente](images/p4.jpeg)
 
 📊 Insight:
 Se identifican universidades líderes, lo que sugiere **preferencias o mayor oferta académica competitiva**.
@@ -215,6 +290,22 @@ Se identifican universidades líderes, lo que sugiere **preferencias o mayor ofe
 📌 **Objetivo:**  
 Evaluar eficiencia regional.
 
+```sql
+SELECT 
+    p.REGION,
+    COUNT(DISTINCT b.DNI) AS becarios,
+    COUNT(DISTINCT a.DNI) AS aptos,
+    CAST(COUNT(DISTINCT b.DNI) * 1.0 / COUNT(DISTINCT a.DNI) AS DECIMAL(5,2)) AS eficiencia
+FROM aptos a
+LEFT JOIN preseleccionados p ON a.DNI = p.DNI
+LEFT JOIN becarios b ON a.DNI = b.DNI
+GROUP BY p.REGION
+ORDER BY eficiencia DESC;
+
+```
+
+![fuente](images/p5.jpeg)
+
 📊 Insight:
 No siempre las regiones con más postulantes generan más becarios → **calidad vs cantidad**.
 
@@ -224,6 +315,40 @@ No siempre las regiones con más postulantes generan más becarios → **calidad
 
 📌 **Objetivo:**  
 Medir qué carreras requieren mayor puntaje.
+
+```sql
+
+SELECT 
+    s.CARRERA,
+    COUNT(DISTINCT p.DNI) AS preseleccionados,
+    AVG(p.PUNTAJE_FINAL) AS promedio_pre,
+
+    COUNT(DISTINCT s.DNI) AS seleccionados,
+    AVG(s.PUNTAJE_FINAL) AS promedio_sel,
+
+    COUNT(DISTINCT b.DNI) AS becarios,
+
+    CAST(
+        COUNT(DISTINCT b.DNI) * 1.0 / COUNT(DISTINCT s.DNI)
+    AS DECIMAL(5,2)) AS tasa_becarios
+
+FROM seleccionados_final s
+
+LEFT JOIN preseleccionados p 
+    ON s.DNI = p.DNI
+
+LEFT JOIN becarios b 
+    ON s.DNI = b.DNI
+
+GROUP BY s.CARRERA
+
+HAVING COUNT(DISTINCT s.DNI) > 30
+
+ORDER BY promedio_sel DESC;
+
+```
+
+![fuente](images/p6.jpeg)
 
 📊 Insight:
 Las carreras con mayor puntaje promedio reflejan **alta demanda y competencia**.
@@ -235,6 +360,40 @@ Las carreras con mayor puntaje promedio reflejan **alta demanda y competencia**.
 📌 **Objetivo:**  
 Analizar el flujo completo por institución.
 
+```sql
+SELECT 
+    COALESCE(p_ies.IES, s.IES, b.INSTITUCION) AS universidad,
+
+    COUNT(DISTINCT p_ies.DNI) AS preseleccionados,
+    COUNT(DISTINCT s.DNI) AS seleccionados,
+    COUNT(DISTINCT b.DNI) AS becarios
+
+FROM (
+
+    -- PRESELECCIONADOS (con info de selección)
+    SELECT 
+        p.DNI,
+        s.IES
+    FROM preseleccionados p
+    LEFT JOIN seleccionados_final s 
+        ON p.DNI = s.DNI
+
+) p_ies
+
+LEFT JOIN seleccionados_final s 
+    ON p_ies.DNI = s.DNI
+
+LEFT JOIN becarios b 
+    ON p_ies.DNI = b.DNI
+
+GROUP BY COALESCE(p_ies.IES, s.IES, b.INSTITUCION)
+
+ORDER BY becarios DESC;
+
+```
+
+![fuente](images/p7.jpeg)
+
 📊 Insight:
 Algunas universidades tienen alta conversión → podrían ser **más accesibles o mejor preparadas para el proceso**.
 
@@ -244,6 +403,48 @@ Algunas universidades tienen alta conversión → podrían ser **más accesibles
 
 📌 **Objetivo:**  
 Evaluar si los mejores puntajes llegan a ser becarios.
+
+```sql
+WITH ranking_pre AS (
+    SELECT 
+        DNI,
+        MODALIDAD,
+        PUNTAJE_FINAL AS puntaje_pre,
+        ROW_NUMBER() OVER (
+            PARTITION BY MODALIDAD 
+            ORDER BY PUNTAJE_FINAL DESC
+        ) AS ranking
+    FROM preseleccionados
+)
+
+SELECT 
+    r.DNI,
+    r.MODALIDAD,
+    r.ranking,
+    r.puntaje_pre,
+
+    s.IES,
+    s.CARRERA,
+    s.PUNTAJE_FINAL AS puntaje_seleccion,
+
+    CASE 
+        WHEN b.DNI IS NOT NULL THEN 'SI'
+        ELSE 'NO'
+    END AS es_becario
+
+FROM ranking_pre r
+
+LEFT JOIN seleccionados_final s 
+    ON r.DNI = s.DNI
+
+LEFT JOIN becarios b 
+    ON r.DNI = b.DNI
+
+ORDER BY r.MODALIDAD, r.ranking;
+
+```
+
+![fuente](images/p8.jpeg)
 
 📊 Insight:
 No todos los altos puntajes terminan siendo becarios → influyen otras variables (elección, vacantes, estrategia).
@@ -255,6 +456,52 @@ No todos los altos puntajes terminan siendo becarios → influyen otras variable
 📌 **Objetivo:**  
 Analizar comportamiento estratégico del postulante.
 
+```sql
+WITH cambios AS (
+    SELECT 
+        DNI,
+        CARRERA,
+        MOMENTO,
+        ROW_NUMBER() OVER (
+            PARTITION BY DNI 
+            ORDER BY 
+                CASE 
+                    WHEN MOMENTO = 'PRIMER_MOMENTO' THEN 1
+                    ELSE 2
+                END
+        ) AS orden
+    FROM seleccionados
+),
+
+pivot_cambios AS (
+    SELECT 
+        c1.DNI
+    FROM cambios c1
+    JOIN cambios c2 
+        ON c1.DNI = c2.DNI
+    WHERE c1.orden = 1
+      AND c2.orden = 2
+      AND c1.CARRERA <> c2.CARRERA
+)
+
+SELECT 
+    COUNT(*) AS total,
+
+    SUM(CASE WHEN b.DNI IS NULL THEN 1 ELSE 0 END) AS no_becarios,
+
+    CAST(
+        SUM(CASE WHEN b.DNI IS NULL THEN 1 ELSE 0 END) * 1.0 
+        / COUNT(*) 
+    AS DECIMAL(5,2)) AS tasa_no_beca
+
+FROM pivot_cambios pc
+LEFT JOIN becarios b 
+    ON pc.DNI = b.DNI;
+
+```
+
+![fuente](images/p9.jpeg)
+
 📊 Insight:
 Algunos postulantes cambian de carrera para mejorar sus probabilidades, pero esto no garantiza éxito.
 
@@ -265,16 +512,125 @@ Algunos postulantes cambian de carrera para mejorar sus probabilidades, pero est
 📌 **Objetivo:**  
 Evaluar si cambiar de carrera ayuda a obtener la beca.
 
+```sql
+WITH cambios AS (
+    SELECT 
+        DNI,
+		MODALIDAD,
+        CARRERA,
+        IES,
+		PUNTAJE_FINAL,
+        MOMENTO,
+        ROW_NUMBER() OVER (
+            PARTITION BY DNI 
+            ORDER BY 
+                CASE 
+                    WHEN MOMENTO = 'PRIMER_MOMENTO' THEN 1
+                    ELSE 2
+                END
+        ) AS orden
+    FROM seleccionados
+),
+
+pivot_cambios AS (
+    SELECT 
+        c1.DNI,
+		c1.IES AS ies_inicial,
+        c1.CARRERA AS carrera_inicial,
+		c2.IES AS ies_final,
+        c2.CARRERA AS carrera_final,
+		c2.PUNTAJE_FINAL AS puntaje_final
+        
+    FROM cambios c1
+    JOIN cambios c2 
+        ON c1.DNI = c2.DNI
+    WHERE c1.orden = 1
+      AND c2.orden = 2
+      AND c1.CARRERA <> c2.CARRERA
+)
+
+SELECT 
+    pc.DNI,
+	pc.ies_inicial,
+    pc.carrera_inicial,
+	pc.ies_final,
+    pc.carrera_final,
+	pc.puntaje_final,
+
+    CASE 
+        WHEN b.DNI IS NOT NULL THEN 'SI'
+        ELSE 'NO'
+    END AS es_becario
+
+FROM pivot_cambios pc
+
+LEFT JOIN becarios b 
+    ON pc.DNI = b.DNI
+
+ORDER BY pc.puntaje_final DESC;
+
+```
+
+![fuente](images/p10.jpeg)
+
 📊 Insight:
 Una proporción relevante de quienes cambian **no logra la beca**, lo que sugiere decisiones no óptimas.
 
 ---
 
-## 📈 Ejemplos de Resultados
+## 📈 Conclusiones y Recomendaciones
 
-_(Agregar capturas en la carpeta /images)_
+### 🎯 Conclusiones Clave
 
-```markdown
-![Funnel](images/funnel.png)
-![Carreras](images/carreras.png)
-![Universidades](images/universidades.png)
+- El proceso de **Beca 18 es altamente competitivo**, evidenciado por la fuerte reducción de postulantes en cada etapa del funnel.
+
+- El **mayor filtro ocurre en la etapa de preselección (ENP)**.  
+  Una vez que el postulante logra superar esta fase, sus probabilidades de avanzar hasta convertirse en becario **aumentan significativamente**.
+
+- Existen **diferencias importantes por modalidad, región y universidad**, lo que sugiere desigualdades en acceso, preparación o estrategias de postulación.
+
+- Las carreras con mayor puntaje promedio reflejan un **alto nivel de competencia y demanda**, lo que obliga a los postulantes a tomar decisiones estratégicas.
+
+- No todos los postulantes con alto puntaje en preselección logran la beca, lo que indica que **el proceso no depende únicamente del rendimiento académico**, sino también de:
+  - Elección de carrera  
+  - Disponibilidad de vacantes  
+  - Decisiones estratégicas del postulante  
+
+- Se identificó que **cambiar de carrera no garantiza obtener la beca**, e incluso una proporción relevante de estos postulantes no logra el objetivo final.
+
+---
+
+### 🚀 Recomendaciones
+
+- 📌 **Fortalecer la preparación para el examen de preselección (ENP)**  
+  Dado que es el principal filtro del proceso, invertir en preparación temprana puede tener el mayor impacto en los resultados.
+
+- 📌 **Orientación vocacional estratégica**  
+  Brindar mejor asesoría a los postulantes para elegir carreras alineadas a:
+  - Su puntaje  
+  - Nivel de competencia  
+  - Probabilidad de ingreso  
+
+- 📌 **Análisis más profundo de postulantes no seleccionados**  
+  Incluir en futuros análisis:
+  - Postulantes no preseleccionados  
+  - Postulantes descalificados  
+  Esto permitiría entender mejor las verdaderas causas de exclusión.
+
+- 📌 **Construcción de un análisis histórico**  
+  Incorporar datos de años anteriores (ej: 2023, 2024) para:
+  - Identificar tendencias  
+  - Evaluar cambios en el proceso  
+  - Medir mejoras o retrocesos en el sistema  
+
+- 📌 **Evaluar equidad regional y por modalidad**  
+  Detectar brechas y diseñar estrategias para mejorar el acceso en regiones con menor tasa de éxito.
+
+- 📌 **Optimización del funnel por universidades**  
+  Analizar qué instituciones tienen mejor conversión para entender buenas prácticas o ventajas estructurales.
+
+---
+
+💡 **Cierre:**
+
+Este proyecto demuestra cómo el uso de datos permite transformar un proceso complejo en información clara y accionable, facilitando la toma de decisiones tanto para postulantes como para entidades educativas y gubernamentales.
