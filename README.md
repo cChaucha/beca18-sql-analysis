@@ -49,6 +49,26 @@ Se realizaron:
 
 ![fuente](images/pdf_fuente.jpeg)
 
+```python
+----
+with pdfplumber.open(ruta_aptos) as pdf:
+    for i, page in enumerate(tqdm(pdf.pages)):
+        try:
+            table = page.extract_table()
+
+            if table:
+                for row in table[1:]:  # ignoramos encabezados del PDF
+                    Aptos.append(row)
+
+        except Exception as e:
+            print(f"Error en página {i}: {e}")
+
+# Crear DataFrame SIN usar encabezados del PDF
+df_aptos = pd.DataFrame(Aptos)
+
+# Asignar encabezados normalizados
+df_aptos.columns = ["N", "MODALIDAD", "DNI", "NOMBRES", "RESULTADO"]
+
 ---
 
 ### 🔹 2. Transformación (Data Cleaning)
