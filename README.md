@@ -138,6 +138,26 @@ Se aplicaron validaciones de calidad:
 - Integridad entre etapas
 - Consistencia de datos
 
+```python
+CREATE TABLE aptos (
+    N INT,
+    MODALIDAD VARCHAR(100),
+    DNI VARCHAR(8) PRIMARY KEY,
+    NOMBRES VARCHAR(150),
+    RESULTADO VARCHAR(20)
+);
+
+BULK INSERT aptos
+FROM 'G:\SQL\Proyecto Beca 18\aptos.csv'
+WITH (
+    FIRSTROW = 2,
+    FIELDTERMINATOR = ';',
+    ROWTERMINATOR = '\n',
+    CODEPAGE = '65001'
+);
+
+```
+
 ---
 
 ### 🔹 4. Modelado
