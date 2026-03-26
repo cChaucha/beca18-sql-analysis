@@ -84,24 +84,43 @@ Se aplicaron reglas como:
 
 ```python
 ----
-with pdfplumber.open(ruta_aptos) as pdf:
-    for i, page in enumerate(tqdm(pdf.pages)):
-        try:
-            table = page.extract_table()
+# 🔥 1. Eliminar saltos de línea en todo el DataFrame
+df_preseleccionados = df_preseleccionados.applymap(
+    lambda x: x.replace("\n", " ").strip() if isinstance(x, str) else x
+)
 
-            if table:
-                for row in table[1:]:  # ignoramos encabezados del PDF
-                    Aptos.append(row)
+# 🔥 2. Normalizar espacios múltiples
+df_preseleccionados = df_preseleccionados.applymap(
+    lambda x: " ".join(x.split()) if isinstance(x, str) else x
+)
 
-        except Exception as e:
-            print(f"Error en página {i}: {e}")
+# DNI limpio
+df_preseleccionados["DNI"] = df_preseleccionados["DNI"].astype(str).str.strip()
 
-# Crear DataFrame SIN usar encabezados del PDF
-df_aptos = pd.DataFrame(Aptos)
+# textos
+df_preseleccionados["MODALIDAD"] = df_preseleccionados["MODALIDAD"].str.upper().str.strip()
+df_preseleccionados["NOMBRES"] = df_preseleccionados["NOMBRES"].str.strip()
+df_preseleccionados["REGION"] = df_preseleccionados["REGION"].str.strip()
 
-# Asignar encabezados normalizados
-df_aptos.columns = ["N", "MODALIDAD", "DNI", "NOMBRES", "RESULTADO"]
+# 🔥 (OPCIONAL pero recomendado) normalizar CNA
+df_preseleccionados["MODALIDAD"] = df_preseleccionados["MODALIDAD"].str.replace(
+    r"BECA CNA Y POBLACIONES.*AFROPERUANAS",
+    "BECA CNA Y PA",
+    regex=True
+)
 
+# convertir puntajes
+df_preseleccionados["PUNTAJE_ENP"] = pd.to_numeric(df_preseleccionados["PUNTAJE_ENP"], errors="coerce")
+df_preseleccionados["CONDICIONES"] = pd.to_numeric(df_preseleccionados["CONDICIONES"], errors="coerce")
+df_preseleccionados["PUNTAJE_FINAL"] = pd.to_numeric(df_preseleccionados["PUNTAJE_FINAL"], errors="coerce")
+
+# eliminar registros inválidos
+df_preseleccionados = df_preseleccionados[df_preseleccionados["DNI"].str.len() == 8]
+
+# eliminar nulos
+df_preseleccionados = df_preseleccionados.dropna()
+
+```
 ---
 
 ### 🔹 3. Carga de Datos (SQL Server)
