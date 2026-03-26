@@ -46,7 +46,7 @@ with pdfplumber.open(ruta_aptos) as pdf:
             table = page.extract_table()
 
             if table:
-                for row in table[1:]:  # ignoramos encabezados del PDF
+                for row in table[1:]:
                     Aptos.append(row)
 
         except Exception as e:
@@ -77,7 +77,7 @@ ruta_salida = "/content/drive/MyDrive/Proyecto SQL/Base de Datos/aptos.csv"
 df_aptos.to_csv(
     ruta_salida,
     index=False,
-    encoding="utf-8-sig"  # 👈 clave para tildes y SQL Server
+    encoding="utf-8-sig"
 )
 
 print("✅ Archivo CSV exportado correctamente")
@@ -100,11 +100,11 @@ with pdfplumber.open(ruta_preseleccionados) as pdf:
                     if not row or all(x is None for x in row):
                         continue
 
-                    # 🔥 Caso correcto (9 columnas)
+                    # Caso correcto (9 columnas)
                     if len(row) == 9:
                         data_preseleccionados.append(row)
 
-                    # 🔥 Caso con columna extra (POBLACIÓN)
+                    # Caso con columna extra (POBLACIÓN)
                     elif len(row) == 10:
                         # Eliminamos la columna extra (posición 2 o 3)
                         nueva_fila = row[:2] + row[3:]
@@ -158,7 +158,7 @@ df_preseleccionados["MODALIDAD"] = df_preseleccionados["MODALIDAD"].str.upper().
 df_preseleccionados["NOMBRES"] = df_preseleccionados["NOMBRES"].str.strip()
 df_preseleccionados["REGION"] = df_preseleccionados["REGION"].str.strip()
 
-# 🔥 (OPCIONAL pero recomendado) normalizar CNA
+# 🔥 Normalizar CNA
 df_preseleccionados["MODALIDAD"] = df_preseleccionados["MODALIDAD"].str.replace(
     r"BECA CNA Y POBLACIONES.*AFROPERUANAS",
     "BECA CNA Y PA",
